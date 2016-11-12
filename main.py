@@ -1,8 +1,7 @@
 from tkinter import *
 from tkinter import ttk
 
-from Entity.Windows.AddAliment import AddAliment
-from Entity.Windows.AdminMesure import AdminMesure
+from Entity.Windows.AddFood import AddFood
 
 
 class Assistance:
@@ -20,11 +19,7 @@ class Assistance:
             .grid(column=0, row=0, sticky=(W, E))
 
     def display_config_tab(self, tab):
-        ttk.Button(tab, text="Administration des quantités", command=self.display_window_admin_quantity)\
-            .grid(column=0, row=0, sticky=W)
-
-    def display_window_admin_quantity(self):
-        AdminMesure(self.root).display()
+        pass
 
     def display_window(self):
         # Tabs
@@ -45,7 +40,7 @@ class Assistance:
         self.root.mainloop()
 
     def display_window_add_aliment(self):
-        AddAliment(self.root).display()
+        AddFood(self.root).display()
 
 
 if __name__ == '__main__':

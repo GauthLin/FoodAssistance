@@ -4,10 +4,11 @@ from tkinter import ttk
 from Manager.Window import Window
 
 
-class AddAliment:
+class AddFood:
     def __init__(self, root):
         self.root = root
         self.window_manager = Window(root)
+        self.measuringUnits = ('', 'g', 'kg', 'l', 'cl', 'ml', 'sachet', 'paquet')
 
     def display(self):
         """
