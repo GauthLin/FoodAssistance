@@ -45,7 +45,7 @@ class Assistance:
         food_add_btn = ttk.Button(add_frame, text="Ajouter l'aliment")
         foods_tree = ttk.Treeview(tab, columns=('id', 'quantity', 'unit', 'food'))
 
-        def add_food():
+        def add_food(event = None):
             """ Fonction appelée lorsque l'utilisateur clique sur "Ajouter l'aliment" """
             food_add_btn.config(state='disabled')
 
@@ -108,29 +108,70 @@ class Assistance:
         foods_tree.configure(displaycolumns=('quantity', 'unit', 'food'))
         foods_tree.grid(column=0, row=1, sticky=(W, E))
 
-        #  Bouton de suppression d'un aliment
-        delete_frame = Frame(tab)
-        delete_frame.grid(column=0, row=3, sticky=(W, E))
-        delete_frame.configure(background='lightgrey', pady=10, padx=10)
+        #  Bouton de suppression d'un aliment et d'envoie
+        actions_frame = Frame(tab)
+        actions_frame.grid(column=0, row=3, sticky=(W, E))
+        actions_frame.configure(background='lightgrey', pady=10, padx=10)
 
-        delete_selected_food = Button(delete_frame, text="Supprimer l'aliment",
-                                      command=self.delete_selected_food)
-        delete_selected_food.grid(column=0, row=0, padx=(0, 10))
+        send_btn = Button(actions_frame, text='Envoyer la liste')
+        send_btn.grid(column=0, row=0)
+        send_btn.configure(background='darkgreen', foreground='white')
+
+        def delete_selected_food():
+            if len(foods_tree.selection()) == 0:
+                return
+
+            answer = messagebox.askquestion(None, 'Êtes-vous sûr de vouloir supprimer cette aliment de la liste ?')
+            if answer == 'no':
+                return
+
+            for item in foods_tree.selection():
+                food_id = foods_tree.item(item, 'values')[0]
+
+                for food in self.foods:
+                    if int(food.id) == int(food_id):
+                        self.food_repository.delete(food)
+                        self.foods.remove(food)
+                        foods_tree.delete(item)
+                        del food
+                        break
+
+        delete_selected_food = Button(actions_frame, text="Supprimer l'aliment",
+                                      command=delete_selected_food)
+        delete_selected_food.grid(column=1, row=0, padx=10)
         delete_selected_food.configure(background='#FF9D00', foreground='white')
 
-        delete_all_foods = Button(delete_frame, text='Supprimer tous les aliments de la liste',
-                                  command=self.delete_all_foods)
-        delete_all_foods.grid(column=1, row=0)
+        def delete_all_foods():
+            if len(foods_tree.get_children()) == 0:
+                return
+
+            answer = messagebox.askquestion(None, 'Êtes-vous sûr de vouloir supprimer tous les aliments de la liste ?')
+            if answer == 'no':
+                return
+
+            for item in foods_tree.get_children():
+                food_id = foods_tree.item(item, 'values')[0]
+
+                for food in self.foods:
+                    if int(food.id) == int(food_id):
+                        self.food_repository.delete(food)
+                        self.foods.remove(food)
+                        foods_tree.delete(item)
+                        del food
+                        break
+
+        delete_all_foods = Button(actions_frame, text='Supprimer tous les aliments de la liste',
+                                  command=delete_all_foods)
+        delete_all_foods.grid(column=2, row=0)
         delete_all_foods.configure(background='darkred', foreground='white')
 
         for food in self.foods:
             foods_tree.insert('', 'end', values=(food.id, food.quantity, food.measuring_units, food.name))
 
-    def delete_all_foods(self):
-        pass
-
-    def delete_selected_food(self):
-        pass
+        # Bindings event
+        food_name_entry.bind('<Return>', add_food)
+        food_quantity_spinbox.bind('<Return>', add_food)
+        food_measuring_units_cb.bind('<Return>', add_food)
 
     def display_config_tab(self, tab):
         pass

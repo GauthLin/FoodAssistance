@@ -36,6 +36,19 @@ class FoodRepository:
         finally:
             connection.close()
 
+    def delete(self, food):
+        connection = self.db_manager.connect()
+        try:
+            with connection.cursor() as cursor:
+                sql = "DELETE FROM food WHERE id=%s"
+                cursor.execute(sql, (int(food.id)))
+
+            # connection is not autocommit by default. So you must commit to save
+            # your changes.
+            connection.commit()
+        finally:
+            connection.close()
+
     def get_foods(self):
         """
         :return: foods: liste de nourritures
@@ -48,7 +61,6 @@ class FoodRepository:
                 sql = "SELECT * FROM food"
                 cursor.execute(sql)
                 for row in cursor.fetchall():
-                    print(row['name'], row['quantity'], row['measuring_units'])
                     food = Food(row['name'], row['quantity'], row['measuring_units'])
                     food.id = row['id']
                     foods.append(food)
