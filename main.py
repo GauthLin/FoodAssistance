@@ -1,9 +1,12 @@
+import multiprocessing
 from tkinter import *
 from tkinter import messagebox
 from tkinter import ttk
 
 from Entity.Food import Food
+from Manager.GmailManager import GmailManager
 from Repository.FoodRepository import FoodRepository
+from time import sleep
 
 
 class Assistance:
@@ -16,6 +19,7 @@ class Assistance:
 
         self.measuring_units = ('', 'g', 'kg', 'l', 'cl', 'ml', 'sachet', 'paquet')
         self.foods = self.food_repository.get_foods()  # Liste des aliments dans la liste des courses
+        self.mail_sender_accept = ['linard.gauthier@gmail.com']
 
     def start(self):
         self.display_window()
@@ -214,6 +218,20 @@ class Assistance:
             entry.config(foreground='grey')
 
 
+def check_mail(foods, mail_sender_accept):
+    gmail = GmailManager()
+
+    while True:
+        gmail.read(foods, mail_sender_accept)
+        sleep(60)
+
 if __name__ == '__main__':
     assistance = Assistance()
+
+    mail_process = multiprocessing.Process(target=check_mail, args=(assistance.foods, assistance.mail_sender_accept))
+    mail_process.start()
+
     assistance.start()
+
+    if mail_process.is_alive():
+        mail_process.terminate()
