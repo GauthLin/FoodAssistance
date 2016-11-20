@@ -3,10 +3,15 @@ from tkinter import *
 from tkinter import messagebox
 from tkinter import ttk
 
+from gtts import gTTS
+
 from Entity.Food import Food
+from Manager.FoodManager import FoodManager
 from Manager.GmailManager import GmailManager
 from Repository.FoodRepository import FoodRepository
 from time import sleep
+
+from Repository.UserRepository import UserRepository
 
 
 class Assistance:
@@ -16,10 +21,16 @@ class Assistance:
         self.root.configure(padx="10", pady="10")
 
         self.food_repository = FoodRepository()
+        self.user_repository = UserRepository()
+        self.food_manager = FoodManager()
+        self.gmail = GmailManager()
 
-        self.measuring_units = ('', 'g', 'kg', 'l', 'cl', 'ml', 'sachet', 'paquet')
+        self.measuring_units = ('', 'g', 'kg', 'l', 'cl', 'ml', 'sachet', 'paquet', 'bouteille')
         self.foods = self.food_repository.get_foods()  # Liste des aliments dans la liste des courses
-        self.mail_sender_accept = ['linard.gauthier@gmail.com']
+        self.mail_sender_accept = self.user_repository.get_users_mails()
+
+        tts = gTTS(text="Bonjour et bienvenue", lang='fr')
+        tts.save('sounds/hello.mp3')
 
     def start(self):
         self.display_window()
@@ -49,7 +60,7 @@ class Assistance:
         food_add_btn = ttk.Button(add_frame, text="Ajouter l'aliment")
         foods_tree = ttk.Treeview(tab, columns=('id', 'quantity', 'unit', 'food'))
 
-        def add_food(event = None):
+        def add_food(event=None):
             """ Fonction appelée lorsque l'utilisateur clique sur "Ajouter l'aliment" """
             food_add_btn.config(state='disabled')
 
@@ -117,7 +128,7 @@ class Assistance:
         actions_frame.grid(column=0, row=3, sticky=(W, E))
         actions_frame.configure(background='lightgrey', pady=10, padx=10)
 
-        send_btn = Button(actions_frame, text='Envoyer la liste')
+        send_btn = Button(actions_frame, text='Envoyer la liste', command=self.send_foods)
         send_btn.grid(column=0, row=0)
         send_btn.configure(background='darkgreen', foreground='white')
 
@@ -177,8 +188,72 @@ class Assistance:
         food_quantity_spinbox.bind('<Return>', add_food)
         food_measuring_units_cb.bind('<Return>', add_food)
 
+    def send_foods(self):
+        """
+        Envoi la liste des courses à tous les utilisateurs
+        """
+        for mail in self.mail_sender_accept:
+            self.gmail.send(mail, self.foods)
+
     def display_config_tab(self, tab):
-        pass
+        """
+        Affiche l'onglet de "Configuration"
+        """
+        config_label = ttk.Label(tab, text="Utilisateurs")
+        config_label.grid(column=0, row=0, padx=10, pady=10)
+
+        user_mail_var = StringVar()
+        user_email_entry = ttk.Entry(tab, textvariable=user_mail_var)
+        user_email_entry.grid(column=1, row=0, sticky=(W, E))
+        user_email_entry.config(width=40)
+        self.add_placeholder(user_email_entry, 'Adresse mail...')
+
+        add_user_mail_btn = ttk.Button(tab, text="Ajouter l'adresse mail")
+        add_user_mail_btn.grid(column=2, row=0, padx=(5, 0))
+
+        users_mails__sb = Scrollbar(tab)
+        users_mails__sb.grid(column=2, row=1, sticky=(W, N, S))
+
+        users_mails_lb = Listbox(tab, yscrollcommand=users_mails__sb.set)
+        users_mails_lb.grid(column=1, row=1, sticky=(W, E))
+
+        users_mails__sb.config(command=users_mails_lb.yview)
+
+        def add_mail(event=None):
+            mail = user_mail_var.get().strip()
+            if mail == 'Adresse mail...' or mail == '':
+                messagebox.showerror(None, "L'adresse mail ne peut pas être vide !")
+                return
+
+            if not re.match(r"(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)", mail):
+                messagebox.showerror(None, "L'adresse mail n'a pas un format valide !")
+                return
+
+            self.user_repository.add_mail(mail)
+            self.mail_sender_accept.append(mail)
+            users_mails_lb.insert('end', mail)
+            user_mail_var.set('')
+
+        def del_mail():
+            for item in users_mails_lb.curselection():
+                mail = users_mails_lb.get(item)
+                question = messagebox.askquestion(None,
+                                                  "Êtes-vous sûr(e) de vouloir supprimer l'adresse mail %s de la liste ?" % mail)
+
+                if question == 'yes':
+                    self.mail_sender_accept.remove(mail)
+                    users_mails_lb.delete(item)
+                    self.user_repository.del_mail(mail)
+
+        add_user_mail_btn.config(command=add_mail)
+        user_email_entry.bind('<Return>', add_mail)
+
+        del_mail_btn = Button(tab, text="Supprimer l'adresse mail", command=del_mail)
+        del_mail_btn.grid(column=1, row=2, sticky=(W, E, N))
+        del_mail_btn.configure(bg='darkred', fg='white')
+
+        for mail in self.mail_sender_accept:
+            users_mails_lb.insert('end', mail)
 
     def display_window(self):
         # Tabs
@@ -218,17 +293,18 @@ class Assistance:
             entry.config(foreground='grey')
 
 
-def check_mail(foods, mail_sender_accept):
+def check_mail():
     gmail = GmailManager()
 
     while True:
-        gmail.read(foods, mail_sender_accept)
-        sleep(60)
+        gmail.read()
+        sleep(120)
+
 
 if __name__ == '__main__':
     assistance = Assistance()
 
-    mail_process = multiprocessing.Process(target=check_mail, args=(assistance.foods, assistance.mail_sender_accept))
+    mail_process = multiprocessing.Process(target=check_mail)
     mail_process.start()
 
     assistance.start()
