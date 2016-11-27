@@ -3,9 +3,8 @@ from tkinter import *
 from tkinter import messagebox
 from tkinter import ttk
 
-from gtts import gTTS
-
 from Entity.Food import Food
+from Manager.DBManager import DBManager
 from Manager.FoodManager import FoodManager
 from Manager.GmailManager import GmailManager
 from Repository.FoodRepository import FoodRepository
@@ -22,15 +21,14 @@ class Assistance:
 
         self.food_repository = FoodRepository()
         self.user_repository = UserRepository()
+        self.db_manager = DBManager()
+        self.db_manager.init()
         self.food_manager = FoodManager()
         self.gmail = GmailManager()
 
         self.measuring_units = ('', 'g', 'kg', 'l', 'cl', 'ml', 'sachet', 'paquet', 'bouteille')
         self.foods = self.food_repository.get_foods()  # Liste des aliments dans la liste des courses
         self.mail_sender_accept = self.user_repository.get_users_mails()
-
-        tts = gTTS(text="Bonjour et bienvenue", lang='fr')
-        tts.save('sounds/hello.mp3')
 
     def start(self):
         self.display_window()

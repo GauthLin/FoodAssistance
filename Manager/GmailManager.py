@@ -27,8 +27,6 @@ class GmailManager:
         foods = self.food_repo.get_foods()
         sender_accept = self.user_repo.get_users_mails()
 
-        print(foods, sender_accept)
-
         for uid in uids:
             result, data = self.imap.uid('fetch', uid, '(RFC822)')
             raw_email = data[0][1]
