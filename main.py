@@ -7,6 +7,7 @@ from Entity.Food import Food
 from Manager.DBManager import DBManager
 from Manager.FoodManager import FoodManager
 from Manager.GmailManager import GmailManager
+from Manager.VerticalScrolledFrame import VerticalScrolledFrame
 from Repository.FoodRepository import FoodRepository
 from time import sleep
 
@@ -17,6 +18,7 @@ class Assistance:
     def __init__(self):
         self.root = Tk()
         self.root.title("Assistance de cuisine")
+        self.root.config(height=200)
         self.root.configure(padx="10", pady="10")
 
         self.food_repository = FoodRepository()
@@ -110,7 +112,7 @@ class Assistance:
         tree_scroll = ttk.Scrollbar(tab)
         tree_scroll.grid(column=1, row=1, sticky=(S, N))
         tree_scroll.configure(command=foods_tree.yview)
-        foods_tree.configure(yscrollcommand=tree_scroll.set)
+        foods_tree.configure(yscrollcommand=tree_scroll.set, height=6)
         foods_tree['show'] = 'headings'
         foods_tree.heading('quantity', text='#')
         foods_tree.column('quantity', width=10)
@@ -254,8 +256,11 @@ class Assistance:
             users_mails_lb.insert('end', mail)
 
     def display_window(self):
+        root_frame = VerticalScrolledFrame(self.root)
+        root_frame.grid(column=0, row=0)
+
         # Tabs
-        notebook = ttk.Notebook(self.root)
+        notebook = ttk.Notebook(root_frame.interior)
         tab_course = ttk.Frame(notebook)
         tab_timer = ttk.Frame(notebook)
         tab_config = ttk.Frame(notebook)
@@ -267,6 +272,9 @@ class Assistance:
         # Liste de courses
         self.display_course_tab(tab_course)
         self.display_config_tab(tab_config)
+
+        self.root.rowconfigure(0, weight=1)
+        self.root.columnconfigure(0, weight=1)
 
         # Mainloop
         self.root.mainloop()

@@ -1,11 +1,12 @@
 import pymysql.cursors
+import param
 
 
 class DBManager:
     def connect(self):
         connection = pymysql.connect(host='localhost',
-                                     user='root',
-                                     password='',
+                                     user=param.db['username'],
+                                     password=param.db['password'],
                                      db='food_assistance',
                                      charset='utf8',
                                      cursorclass=pymysql.cursors.DictCursor)
