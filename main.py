@@ -262,10 +262,8 @@ class Assistance:
         # Tabs
         notebook = ttk.Notebook(root_frame.interior)
         tab_course = ttk.Frame(notebook)
-        tab_timer = ttk.Frame(notebook)
         tab_config = ttk.Frame(notebook)
         notebook.add(tab_course, text='Liste de courses')
-        notebook.add(tab_timer, text='Minuteur')
         notebook.add(tab_config, text='Configuration')
         notebook.grid(column=0, row=0)
 
