@@ -18,7 +18,7 @@ class Assistance:
     def __init__(self):
         self.root = Tk()
         self.root.title("Assistance de cuisine")
-        self.root.geometry('800x220+0+0')
+        self.root.geometry('800x260+0+0')
         self.root.configure(padx="10", pady="10")
 
         self.food_repository = FoodRepository()
