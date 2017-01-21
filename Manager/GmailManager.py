@@ -45,7 +45,7 @@ class GmailManager:
                 else:
                     msg = email_message.get_payload()
 
-                if msg.strip().lower() == 'send shopping list':
+                if msg.strip().lower() in ['send shopping list', 'send']:
                     self.send(mail_from, foods)
                     pass
 
@@ -83,6 +83,6 @@ class GmailManager:
 
         server = smtplib.SMTP('smtp.gmail.com', 587)
         server.starttls()
-        server.login(fromaddr, "FoodAssistanceNoel2016")
+        server.login(fromaddr, param.gmail['password'])
         server.sendmail(fromaddr, toaddr, msg.as_string())
         server.quit()

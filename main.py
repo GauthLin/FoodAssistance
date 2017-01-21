@@ -32,6 +32,8 @@ class Assistance:
         self.foods = self.food_repository.get_foods()  # Liste des aliments dans la liste des courses
         self.mail_sender_accept = self.user_repository.get_users_mails()
 
+        self.tree_columns = ('id', 'quantity', 'unit', 'food')
+
     def start(self):
         self.display_window()
 
@@ -58,7 +60,10 @@ class Assistance:
         food_measuring_units_cb.grid(column=2, row=0)
 
         food_add_btn = ttk.Button(add_frame, text="Ajouter l'aliment")
-        foods_tree = ttk.Treeview(tab, columns=('id', 'quantity', 'unit', 'food'))
+        foods_tree = ttk.Treeview(tab, columns=self.tree_columns)
+
+        for col in self.tree_columns:
+            foods_tree.heading(col, text=col.title(), command=lambda c=col: sortby(foods_tree, c, 0))
 
         def add_food(event=None):
             """ Fonction appelée lorsque l'utilisateur clique sur "Ajouter l'aliment" """
@@ -79,13 +84,13 @@ class Assistance:
 
             # Vérification des quantités
             food_quantity = food_quantity_var.get().strip()
-            if not food_quantity.isnumeric():
+            if not food_quantity.isnumeric() and food_quantity:
                 messagebox.showerror(None, "La quantité doit être un nombre !")
                 food_add_btn.config(state='normal')
                 food_quantity_var.set(0)
                 return
 
-            food_quantity = float(food_quantity)
+            food_quantity = float(food_quantity) if food_quantity else float(0)
             if food_quantity < 0:
                 messagebox.showerror(None, "La quantité ne peut pas être un nombre négatif !")
                 food_add_btn.config(state='normal')
@@ -160,8 +165,12 @@ class Assistance:
             if len(foods_tree.get_children()) == 0:
                 return
 
-            answer = messagebox.askquestion(None, 'Êtes-vous sûr de vouloir supprimer tous les aliments de la liste ?')
-            if answer == 'no':
+            answer = messagebox.askyesnocancel(None,
+                                               'Cliquez sur Yes pour supprimer tous les aliments de la liste.\n'
+                                               'Cliquez sur No pour supprimer chaque aliment un à un.\n'
+                                               'Cliquez sur Cancel pour ne supprimer aucun aliment.')
+
+            if answer is None:
                 return
 
             for item in foods_tree.get_children():
@@ -169,16 +178,28 @@ class Assistance:
 
                 for food in self.foods:
                     if int(food.id) == int(food_id):
+                        if answer == False:
+                            answer_del_food = messagebox.askyesnocancel(None,
+                                                                        'Voulez-vous supprimer "%s" de la liste ?\n'
+                                                                        'Cliquez sur Cancel pour arrêter la suppression.' % food.name)
+                            # If user click on Cancel, stop the loop
+                            if answer_del_food is None:
+                                return
+
+                            # If user click sur No, jut continue the loop for next food
+                            if not answer_del_food:
+                                continue
+
                         self.food_repository.delete(food)
                         self.foods.remove(food)
                         foods_tree.delete(item)
                         del food
                         break
 
-        delete_all_foods = Button(actions_frame, text='Supprimer tous les aliments de la liste',
-                                  command=delete_all_foods)
-        delete_all_foods.grid(column=2, row=0)
-        delete_all_foods.configure(background='darkred', foreground='white')
+        delete_all_foods_btn = Button(actions_frame, text='Supprimer tous les aliments',
+                                      command=delete_all_foods)
+        delete_all_foods_btn.grid(column=2, row=0)
+        delete_all_foods_btn.configure(background='darkred', foreground='white')
 
         for food in self.foods:
             foods_tree.insert('', 'end', values=(food.id, food.quantity, food.measuring_units, food.name))
@@ -303,6 +324,20 @@ def check_mail():
     while True:
         gmail.read()
         sleep(120)
+
+
+def sortby(tree, col, descending):
+    """Sort tree contents when a column is clicked on."""
+    # grab values to sort
+    data = [(tree.set(child, col), child) for child in tree.get_children('')]
+
+    # reorder data
+    data.sort(reverse=descending)
+    for indx, item in enumerate(data):
+        tree.move(item[1], '', indx)
+
+    # switch the heading so that it will sort in the opposite direction
+    tree.heading(col, command=lambda col=col: sortby(tree, col, int(not descending)))
 
 
 if __name__ == '__main__':
