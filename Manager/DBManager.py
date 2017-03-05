@@ -1,17 +1,30 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+import logging
 import pymysql.cursors
+import sys
+
 import param
 
 
 class DBManager:
-    def connect(self):
-        connection = pymysql.connect(host='localhost',
-                                     user=param.db['username'],
-                                     password=param.db['password'],
-                                     db='food_assistance',
-                                     charset='utf8',
-                                     cursorclass=pymysql.cursors.DictCursor)
+    def __init__(self):
+        self.logger = logging.getLogger("food_assistance")
 
-        return connection
+    def connect(self):
+        try:
+            connection = pymysql.connect(host='localhost',
+                                         user=param.db['username'],
+                                         password=param.db['password'],
+                                         db='food_assistance',
+                                         charset='utf8',
+                                         cursorclass=pymysql.cursors.DictCursor)
+
+            return connection
+        except:
+            self.logger.error("Unexpected error: %s", sys.exc_info()[1])
+            return None
 
     def init(self):
         connection = self.connect()
@@ -35,4 +48,3 @@ class DBManager:
             connection.commit()
         finally:
             connection.close()
-

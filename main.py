@@ -1,21 +1,38 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+import logging
 import multiprocessing
+from logging.handlers import RotatingFileHandler
+from time import sleep
 from tkinter import *
 from tkinter import messagebox
 from tkinter import ttk
 
 from Entity.Food import Food
 from Manager.DBManager import DBManager
-from Manager.FoodManager import FoodManager
 from Manager.GmailManager import GmailManager
 from Manager.VerticalScrolledFrame import VerticalScrolledFrame
 from Repository.FoodRepository import FoodRepository
-from time import sleep
-
 from Repository.UserRepository import UserRepository
 
 
 class Assistance:
     def __init__(self):
+        # create formatter and add it to the handlers
+        formatter = logging.Formatter('[%(levelname)s] %(asctime)s - %(message)s', datefmt="%d/%m/%Y %H:%M:%S")
+
+        # create file handler which logs even debug messages
+        my_handler = RotatingFileHandler('food_assistance.log', mode='a', maxBytes=10 * pow(10, 6),
+                                         backupCount=5, encoding=None, delay=0)
+        my_handler.setFormatter(formatter)
+        my_handler.setLevel(logging.DEBUG)
+
+        # create logger with 'spam_application'
+        self.logger = logging.getLogger('food_assistance')
+        self.logger.setLevel(logging.DEBUG)
+        self.logger.addHandler(my_handler)
+
         self.root = Tk()
         self.root.title("Assistance de cuisine")
         self.root.geometry('800x260+0+0')
@@ -25,7 +42,6 @@ class Assistance:
         self.user_repository = UserRepository()
         self.db_manager = DBManager()
         self.db_manager.init()
-        self.food_manager = FoodManager()
         self.gmail = GmailManager()
 
         self.measuring_units = ('', 'g', 'kg', 'l', 'cl', 'ml', 'sachet', 'paquet', 'bouteille')
@@ -77,8 +93,8 @@ class Assistance:
                 food_add_btn.config(state='normal')
                 return
 
-            if len(food_name) > 20:
-                messagebox.showerror(None, "Le nom de l'aliment ne peut pas contenir plus de 20 caractères !")
+            if len(food_name) > 50:
+                messagebox.showerror(None, "Le nom de l'aliment ne peut pas contenir plus de 50 caractères !")
                 food_add_btn.config(state='normal')
                 return
 
@@ -100,9 +116,8 @@ class Assistance:
             self.food_repository.save(new_food)
             self.foods.append(new_food)
 
-            foods_tree.insert('', 'end',
+            foods_tree.insert('', 0,
                               values=(new_food.id, new_food.quantity, new_food.measuring_units, new_food.name))
-
             food_name_var.set('')
             food_name_entry.focus()
             food_quantity_var.set(0)
@@ -323,7 +338,7 @@ def check_mail():
 
     while True:
         gmail.read()
-        sleep(120)
+        sleep(600)
 
 
 def sortby(tree, col, descending):

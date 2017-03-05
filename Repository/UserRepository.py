@@ -1,9 +1,17 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+import logging
+
+import sys
+
 from Manager.DBManager import DBManager
 
 
 class UserRepository:
     def __init__(self):
         self.db_manager = DBManager()
+        self.logger = logging.getLogger('food_assistance')
 
     def get_users_mails(self):
         connection = self.db_manager.connect()
@@ -14,6 +22,8 @@ class UserRepository:
                 mails = []
                 for row in cursor.fetchall():
                     mails.append(row['mail'])
+        except:
+            self.logger.error("Unexpected error: %s", sys.exc_info()[1])
         finally:
             connection.close()
 
@@ -27,6 +37,10 @@ class UserRepository:
                 cursor.execute(sql, mail)
 
             connection.commit()
+
+            self.logger.info("L'adresse mail `%s` a bien été ajouté à la liste des utilisateurs.", mail)
+        except:
+            self.logger.error("Unexpected error: %s", sys.exc_info()[1])
         finally:
             connection.close()
 
@@ -38,5 +52,9 @@ class UserRepository:
                 cursor.execute(sql, mail)
 
             connection.commit()
+
+            self.logger.info("L'adresse mail `%s` a bien été supprimé de la liste des utilisateurs.", mail)
+        except:
+            self.logger.error("Unexpected error: %s", sys.exc_info()[1])
         finally:
             connection.close()

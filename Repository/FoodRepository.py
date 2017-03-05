@@ -1,3 +1,10 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+import logging
+
+import sys
+
 from Entity.Food import Food
 from Manager.DBManager import DBManager
 
@@ -5,6 +12,7 @@ from Manager.DBManager import DBManager
 class FoodRepository:
     def __init__(self):
         self.db_manager = DBManager()
+        self.logger = logging.getLogger('food_assistance')
 
     def save(self, food):
         """
@@ -33,6 +41,10 @@ class FoodRepository:
                     cursor.execute(sql)
                     result = cursor.fetchone()
                     food.id = result['LAST_INSERT_ID()']
+
+            self.logger.info("L'aliment `%s` a bien été ajouté à la liste de courses.", food.name)
+        except:
+            self.logger.error("Unexpected error: %s", sys.exc_info()[1])
         finally:
             connection.close()
 
@@ -46,6 +58,10 @@ class FoodRepository:
             # connection is not autocommit by default. So you must commit to save
             # your changes.
             connection.commit()
+
+            self.logger.info("L'aliment `%s` a bien été supprimé de la liste de courses.", food.name)
+        except:
+            self.logger.error("Unexpected error: %s", sys.exc_info()[1])
         finally:
             connection.close()
 
@@ -64,6 +80,8 @@ class FoodRepository:
                     food = Food(row['name'], row['quantity'], row['measuring_units'])
                     food.id = row['id']
                     foods.append(food)
+        except:
+            self.logger.error("Unexpected error: %s", sys.exc_info()[1])
         finally:
             connection.close()
 

@@ -1,10 +1,17 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import imaplib
+import logging
 import smtplib
 import email
 import re
 
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+
+import sys
+from logging.handlers import RotatingFileHandler
 
 import param
 from Repository.FoodRepository import FoodRepository
@@ -15,39 +22,81 @@ class GmailManager:
     def __init__(self):
         self.food_repo = FoodRepository()
         self.user_repo = UserRepository()
+        # create formatter and add it to the handlers
+        formatter = logging.Formatter('[%(levelname)s] %(asctime)s - %(message)s', datefmt="%d/%m/%Y %H:%M:%S")
+
+        # create file handler which logs even debug messages
+        my_handler = RotatingFileHandler('gmail.log', mode='a', maxBytes=10 * pow(10, 6),
+                                         backupCount=5, encoding=None, delay=0)
+        my_handler.setFormatter(formatter)
+        my_handler.setLevel(logging.DEBUG)
+
+        # create logger with 'spam_application'
+        self.logger = logging.getLogger('gmail')
+        self.logger.setLevel(logging.DEBUG)
+        self.logger.addHandler(my_handler)
+
+    def connect(self):
         # Login to INBOX
-        self.imap = imaplib.IMAP4_SSL("imap.gmail.com", 993)
-        self.imap.login(param.gmail['username'], param.gmail['password'])
+        self.logger.info("Connexion au compte Gmail en cours...")
+        imap = imaplib.IMAP4_SSL("imap.gmail.com", 993)
+
+        try:
+            imap.login(param.gmail['username'], param.gmail['password'])
+            return imap
+        except:
+            self.logger.error("Unexpected error: %s", sys.exc_info()[1])
 
     def read(self):
-        self.imap.select()
-        result, data = self.imap.uid('search', None, "UNSEEN")  # search and return uids instead
-        uids = data[0].split()
+        imap = self.connect()
+        try:
+            self.logger.info("Recherche de nouveaux emails en cours...")
+            imap.select()
+            result, data = imap.uid('search', None, "UNSEEN")  # search and return uids instead
+            uids = data[0].split()
 
-        foods = self.food_repo.get_foods()
-        sender_accept = self.user_repo.get_users_mails()
+            if len(uids) == 0:
+                self.logger.info("Pas de nouveau email.")
+                return
+            else:
+                self.logger.info('Nouveaux emails non lus en attente...')
 
-        for uid in uids:
-            result, data = self.imap.uid('fetch', uid, '(RFC822)')
-            raw_email = data[0][1]
+            foods = self.food_repo.get_foods()
+            sender_accept = self.user_repo.get_users_mails()
 
-            email_message = email.message_from_bytes(raw_email)
-            get_from = re.search('<([^>]+)>', email_message['from'], re.IGNORECASE)
-            mail_from = get_from if not get_from else get_from.group(1)
+            for uid in uids:
+                result, data = imap.uid('fetch', uid, '(RFC822)')
+                raw_email = data[0][1]
 
-            if get_from and mail_from in sender_accept:
-                msg = ''
-                if email_message.is_multipart():
-                    for payload in email_message.get_payload():
-                        # if payload.is_multipart(): ...
-                        msg = payload.get_payload()
-                        break
-                else:
-                    msg = email_message.get_payload()
+                email_message = email.message_from_bytes(raw_email)
+                get_from = re.search('<([^>]+)>', email_message['from'], re.IGNORECASE)
+                mail_from = get_from if not get_from else get_from.group(1)
+                self.logger.info("Nouveau email reçu de `%s`. Traitement en cours...", mail_from)
 
-                if msg.strip().lower() in ['send shopping list', 'send']:
-                    self.send(mail_from, foods)
-                    pass
+                if get_from and mail_from in sender_accept:
+                    self.logger.info("L'expéditeur `%s` est utilisateur de l'app --> mail accepté...")
+                    msg = ''
+                    if email_message.is_multipart():
+                        for payload in email_message.get_payload():
+                            # if payload.is_multipart(): ...
+                            msg = payload.get_payload()
+                            break
+                    else:
+                        msg = email_message.get_payload()
+
+                    self.logger.info("Commande reçue: `%s`.", mail_from, msg)
+
+                    if msg.strip().lower() in ['send shopping list', 'send']:
+                        self.send(mail_from, foods)
+                        pass
+        except:
+            self.logger.error("Unexpected error: %s", sys.exc_info()[1])
+        finally:
+            try:
+                self.logger.info('Déconnexion du compte en cours...')
+                imap.logout()
+            except:
+                self.logger.error("Unexpected error: %s", sys.exc_info()[1])
 
     def send(self, to, foods):
         fromaddr = param.gmail['username']
@@ -86,3 +135,5 @@ class GmailManager:
         server.login(fromaddr, param.gmail['password'])
         server.sendmail(fromaddr, toaddr, msg.as_string())
         server.quit()
+
+        self.logger.info("Envoi de la liste des courses à `%s`.", toaddr)
