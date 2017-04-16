@@ -47,4 +47,7 @@ class DBManager:
             # your changes.
             connection.commit()
         finally:
-            connection.close()
+            try:
+                connection.close()
+            except:
+                self.logger.error("Unexpected error: %s", sys.exc_info()[1])

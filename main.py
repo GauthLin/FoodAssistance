@@ -363,5 +363,9 @@ if __name__ == '__main__':
 
     assistance.start()
 
+    logger = logging.getLogger('food_assistance')
     if mail_process.is_alive():
         mail_process.terminate()
+        logger.info('Fin du process `Check_mail`')
+
+    logger.info('Application arrêté')
